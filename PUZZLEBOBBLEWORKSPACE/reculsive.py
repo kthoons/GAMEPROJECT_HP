@@ -43,11 +43,10 @@
 
 # 퀴즈
 def factorial(n):
-    if n == 0:
-        return 1
+    if n > 1:
+        return n * factorial(n-1)
     else:
-        n = factorial(n-1) * n
-        return n
+        return 1
 
-result = factorial(1000)
+result = factorial(4)
 print(result) # 24
