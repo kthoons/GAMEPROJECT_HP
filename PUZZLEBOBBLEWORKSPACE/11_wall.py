@@ -43,6 +43,9 @@ class Bubble(pygame.sprite.Sprite):
     def set_map_index(self, row_idx, col_idx):
         self.row_idx = row_idx
         self.col_idx = col_idx
+    
+    def drop_downward(self, height):
+        self.rect = self.image.get_rect(center=(self.rect.centerx, self.rect.centery + height))
 
 # 발사대 클래스 생성
 class Pointer(pygame.sprite.Sprite):
@@ -101,7 +104,7 @@ def setup():
 
 def get_bubble_position(row_idx, col_idx):
     pos_x = col_idx * CELL_SIZE + (BUBBLE_WIDTH // 2)
-    pos_y = row_idx * CELL_SIZE + (BUBBLE_HEIGHT // 2)
+    pos_y = row_idx * CELL_SIZE + (BUBBLE_HEIGHT // 2) + wall_height
     if row_idx % 2 == 1:
         pos_x += CELL_SIZE // 2
     return pos_x, pos_y
@@ -148,7 +151,7 @@ def get_random_bubble_color():
 def process_collision():
     global curr_bubble, fire, curr_fire_count
     hit_bubble = pygame.sprite.spritecollideany(curr_bubble, bubble_group, pygame.sprite.collide_mask)
-    if hit_bubble or curr_bubble.rect.top <= 10:
+    if hit_bubble or curr_bubble.rect.top <= wall_height:
         row_idx, col_idx = get_map_index(*curr_bubble.rect.center) # (x, y)
         place_bubble(curr_bubble, row_idx, col_idx)
         remove_adjacent_bubbles(row_idx, col_idx, curr_bubble.color)
@@ -157,7 +160,7 @@ def process_collision():
         curr_fire_count -= 1 
 
 def get_map_index(x, y):
-    row_idx = y // CELL_SIZE
+    row_idx = (y - wall_height) // CELL_SIZE
     col_idx = x // CELL_SIZE
     if row_idx % 2 == 1:
         col_idx = (x - (CELL_SIZE // 2)) // CELL_SIZE
@@ -183,7 +186,7 @@ def remove_adjacent_bubbles(row_idx, col_idx, color):
 
 def visit(row_idx, col_idx, color=None):
     # 맵의 범위를 벗어나는지 확인
-    if row_idx < 0 or row_idx >= MAP_ROW_COUNT or col_idx > MAP_COLUMN_COUNT:
+    if row_idx < 0 or row_idx >= MAP_ROW_COUNT or col_idx < 0 or col_idx >= MAP_COLUMN_COUNT:
         return
     # 현재 Cell 의 색상이 color 와 같은지 확인
     if color and map[row_idx][col_idx] != color:
@@ -235,6 +238,14 @@ def draw_bubbles():
     for bubble in bubble_group:
         bubble.draw(screen, to_x)
 
+def drop_wall():
+    global wall_height, curr_fire_count
+    wall_height += CELL_SIZE
+    for bubble in bubble_group:
+        bubble.drop_downward(CELL_SIZE)
+    curr_fire_count = FIRE_COUNT
+
+
 pygame.init()
 screen_width = 448
 screen_height = 720
@@ -245,6 +256,8 @@ clock = pygame.time.Clock()
 # 배경 이미지 불러오기
 current_path = os.path.dirname(__file__)
 background = pygame.image.load(os.path.join(current_path, "background.png"))
+# 벽 이미지 불러오기
+wall = pygame.image.load(os.path.join(current_path, "wall.png"))
 
 # 버블 이미지 불러오기
 bubble_images = [
@@ -280,6 +293,7 @@ curr_bubble = None # 이번에 쏠 버블
 next_bubble = None # 다음에 쏠 버블
 fire = False # 발사 여부
 curr_fire_count = FIRE_COUNT
+wall_height = 0 # 화면에 보여지는 벽의 높이
 
 map = [] # 맵
 visited = [] # 방문 위치 기록
@@ -316,9 +330,12 @@ while running:
     if fire:
         process_collision() # 충돌 처리
 
+    if curr_fire_count == 0:
+        drop_wall()
 
     screen.blit(background, (0, 0))
-    # bubble_group.draw(screen)
+    screen.blit(wall, (0, wall_height - screen_height))
+
     draw_bubbles()
     pointer.rotate(to_angle_left + to_angle_right)
     pointer.draw(screen)
