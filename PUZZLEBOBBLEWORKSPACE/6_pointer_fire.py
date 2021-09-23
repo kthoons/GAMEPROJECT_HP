@@ -193,7 +193,7 @@ while running:
                 to_angle_left = 0
             elif event.key == pygame.K_RIGHT:
                 to_angle_right = 0
-            
+
     if not curr_bubble:
         prepare_bubbles()
 

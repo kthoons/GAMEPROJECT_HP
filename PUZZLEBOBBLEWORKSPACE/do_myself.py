@@ -1,13 +1,36 @@
-import os
+import os, random, math
 import pygame
 
 # 버블 클래스 생성
 class Bubble(pygame.sprite.Sprite):
-    def __init__(self, image, color, position):
+    def __init__(self, image, color, position=(0,0)):
         super().__init__()
         self.image = image
         self.color = color
         self.rect = image.get_rect(center=position)
+        self.radius = 18
+        
+    def set_rect(self ,position):
+        self.rect = self.image.get_rect(center=position)
+    
+    def draw(self, screen):
+        screen.blit(self.image, self.rect)
+
+    def set_angle(self, angle):
+        self.angle = angle
+        self.rad_angle = math.radians(self.angle)
+
+    def move(self):
+        to_x = self.radius * math.cos(self.rad_angle)
+        to_y = self.radius * math.sin(self.rad_angle) * -1
+
+        self.rect.x += to_x
+        self.rect.y += to_y
+
+        if self.rect.left < 0 or self.rect.right > screen_width:
+            self.set_angle(180 - self.angle)
+
+
 
 # 발사대 클래스 생성
 class Pointer(pygame.sprite.Sprite):
@@ -21,6 +44,7 @@ class Pointer(pygame.sprite.Sprite):
 
     def draw(self, screen):
         screen.blit(self.image, self.rect)
+        pygame.draw.circle(screen, RED, self.position, 3)   
     # 회전
     def rotate(self, angle):
         self.angle += angle
@@ -81,7 +105,47 @@ def get_bubble_image(color):
     else:
         return bubble_images[-1]
 
+def prepare_bubbles():
+    global curr_bubble, next_bubble
+    if next_bubble:
+        curr_bubble = next_bubble
+    else:
+        curr_bubble = create_bubble() # 새 버블 만들기
 
+    curr_bubble.set_rect((screen_width // 2, 624))
+    next_bubble = create_bubble()
+    next_bubble.set_rect((screen_width // 4, 688))
+def create_bubble():
+    color = get_random_bubble_color()
+    image = get_bubble_image(color)
+    return Bubble(image, color)
+
+def get_random_bubble_color():
+    colors = []
+    for row in map:
+        for col in row:
+            if col not in colors and col not in [".", "/"]:
+                colors.append(col)
+    return random.choice(colors)
+
+def process_collision():
+    global curr_bubble, fire
+    hit_bubble = pygame.sprite.spritecollideany(curr_bubble, bubble_group, pygame.sprite.coliide_mask)
+    if hit_bubble:
+        row_idx, col_idx = get_map_index(*curr_bubble.rect.center) # (x, y)
+        place_bubble(curr_bubble, row_idx, col_idx)
+        curr_bubble = None
+        fire = False
+    
+def get_map_index(x, y):
+    row_idx = y // CELL_SIZE
+    col_idx = x // CELL_SIZE
+    if row_idx % 2 == 1:
+        col_idx = (x - (CELL_SIZE // 2)) // CELL_SIZE
+        if col_idx < 0:
+            col_idx = 0
+        elif col_idx > MAP_COL
+        
 pygame.init()
 screen_width = 448
 screen_height = 720
@@ -115,26 +179,23 @@ pointer = Pointer(pointer_image, (screen_width // 2, 624), 90)
 CELL_SIZE = 56
 BUBBLE_WIDTH = 56
 BUBBLE_HEIGHT = 62
+RED = (255, 0, 0)
 
-# 포인터 관련 변수
-to_angle_left = 0
-to_angle_right = 0
-angle_speed = 1.5
+to_angle_left = 0 # 왼쪽으로 움직일 각도 정보
+to_angle_right = 0 # 오른쪽으로 움질일 각도 정보
+angle_speed = 1.5 # 1.5 도씩 움직이게 됨
 
-map = []
+curr_bubble = None # 이번에 쏠 버블
+next_bubble = None # 다음에 쏠 버블
+fire = False # 발사 여부
+
+map = [] # 맵
 bubble_group = pygame.sprite.Group()
 setup()
 
-############################################################################################################
-############################################################################################################
-############################################################################################################
-############################################################################################################
-############################################################################################################
- 
-
 running = True
 while running:
-    clock.tick(60)
+    clock.tick(60) # FPS 60 으로 설정
 
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
@@ -145,17 +206,35 @@ while running:
                 to_angle_left += angle_speed
             elif event.key == pygame.K_RIGHT:
                 to_angle_right -= angle_speed
+            elif event.key == pygame.K_SPACE:
+                if curr_bubble and not fire:
+                    fire = True
+                    curr_bubble.set_angle(pointer.angle)
         if event.type == pygame.KEYUP:
             if event.key == pygame.K_LEFT:
                 to_angle_left = 0
             elif event.key == pygame.K_RIGHT:
                 to_angle_right = 0
 
-            
+    if not curr_bubble:
+        prepare_bubbles()
+
+    if fire:
+        process_collision() # 충돌 처리
     screen.blit(background, (0, 0))
     bubble_group.draw(screen)
     pointer.rotate(to_angle_left + to_angle_right)
     pointer.draw(screen)
+    if curr_bubble:
+        if fire:
+            curr_bubble.move()
+        curr_bubble.draw(screen)
+
+        if curr_bubble.rect.top <= 0:
+            curr_bubble = None
+            fire = False
+    if next_bubble:
+        next_bubble.draw(screen)
     pygame.display.update()
 
 pygame.quit()

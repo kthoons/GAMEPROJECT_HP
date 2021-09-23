@@ -12,7 +12,7 @@ import pyperclip
 
 
 url = "https://work.carefor.co.kr/#cGFnZXx7J3R5cGUnOidsZWZ0X3N1YjEnLCAndmlldyc6Jy9wYXRpZW50L3ZpZXcucGF0aWVudF9tYW5hZ2UnfSV7InRpdGxlIjoiMS0xLuyImOq4ieyekOygleuztCDqtIDrpqwiLCJldmFsIjoiNDciLCJtb3ZlX3Njcm9sbCI6dHJ1ZX18bGVmdF9zdWIx"
-browser = webdriver.Chrome("./chromedriver.exe")
+browser = webdriver.Chrome("C:\\Users\\강태훈\\Desktop\\chromedriver\\chromedriver.exe")
 browser.get(url)
 browser.maximize_window()
 id = ["14146000562","전현미","9810"]
@@ -117,7 +117,9 @@ browser.find_element_by_class_name("btn").click()
 time.sleep(2)
 
 # 팝업 창
-browser.find_element_by_xpath("//*[@id='layerModal']/div/div[3]/div[7]/span").click()
+pyautogui.click(pyautogui.locateOnScreen("mecro_img/close.png"))
+time.sleep(0.1)
+pyautogui.click(pyautogui.locateOnScreen("mecro_img/close.png"))
 time.sleep(0.2)
 # 왼쪽 6번 버튼
 browser.find_element_by_xpath("//*[@id='left_area']/div[4]/ul/li[6]").click()
